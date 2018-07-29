@@ -86,7 +86,89 @@ for n in malist:
 
 たったこれだけで、単語に分解してくれる。
 
+## 青空文庫から小説をダウンロードして単語の出現頻度を調べる
 
+JanomeのTokenizerのimportや青空文庫のzipファイル解凍に必要なzipfileをimportします。
+さらに、ファイル保存やダウンロードに必要なライブラリをimportしておきます。  
+urllib.request / urlopen() はWebスクレイピングする際に必要なライブラリです。
 
+```
+from janome.tokenizer import Tokenizer
+import zipfile
+import os.path, urllib.request as request
+```
+[青空文庫:我輩は猫である](https://www.aozora.gr.jp/cards/000148/card789.html#download)
 
+今回は夏目漱石の「我輩は猫である」を使います。
+
+ここからは、Pythonで青空文庫からダウンロードする方法です。
+
+青空文庫で「我輩は猫である」を探し、ダウンロードファイルをコピーしてきてから変数に代入します。
+
+```
+url = "https://www.aozora.gr.jp/cards/000148/files/789_ruby_5639.zip"
+```
+
+次のコードはもし、プロジェクトフォルダに対象のファイルがなければダウンロードする内容です。
+Pythonでダウンロードする関数は`request.urlretrieve(url,localfile)`です。
+
+```
+localfile = "462_ruby_716.zip"
+
+if not os.path.exists(localfile):
+    print("ファイルをダウンロードします")
+    request.urlretrieve(url,localfile)
+```
+
+これで「我輩は猫である」ファイルをダウンロードできます。
+
+zipファイルの中のファイルを読み取り専用で読み込みます。
+
+```
+zipfile = zipfile.ZipFile(localfile, 'r')
+```
+
+次のファイルを開きます。
+
+```
+file = zipfile.open('wagahaiwa_nekodearu.txt', 'r')
+```
+
+こうすることで、zipファイルを解凍することなくその中のファイルの内容を読み込みます。その後変数に代入した上でtextデータに変換します。
+
+```
+bindata = file.read()
+
+textdata = bindata.decode('shift_jis')
+```
+
+`split`関数で改行コードでデータを分割します。
+
+```
+lines = textdata.split("\r\n")
+```
+
+for in 文で1行ごとに形態素分析を行う。この処理は少し時間がかかります。
+
+```
+for line in lines:
+    malist = t.tokenize(line) #形態素のリスト
+    for w in malist: # リストの各要素を取り出してカウント
+        word = w.surface
+        part = w.part_of_speech
+        if part.find('名詞') < 0: continue
+        if not word in worddic:
+            worddic[word] = 0 #数を格納するカウンター用の変数を生成
+        worddic[word] += 1  # カウンターを増やす
+```
+
+表示はソートを行なった上で実施
+
+```
+keys = sorted(worddic.items(),key = lambda x:x[1], reverse=True)
+for word,cnt in keys[:50]:
+    print("{0}({1})\n".format(word,cnt), end="")
+```
+
+「我輩は猫である」に出現する単語は「主人」が934回で「猫」は249回であることがわかる。ちなみに「寒月」の方が「迷亭」より多く出現しているのもわかった。
 
